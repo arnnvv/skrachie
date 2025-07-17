@@ -6,23 +6,23 @@
     "d": "next dev --turbopack",
     "b": "next build",
     "st": "next start",
-    "f": "pnpm biome format --write .",
-    "l": "pnpm biome lint --write ."
+    "f": "biome format --write .",
+    "l": "biome lint --write ."
   },
   "dependencies": {
-    "next": "15.4.0-canary.102",
+    "next": "15.4.2-canary.5",
     "pg": "8.16.3",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.0.6",
-    "@types/node": "24.0.7",
+    "@biomejs/biome": "2.1.2",
+    "@types/node": "24.0.14",
     "@types/pg": "8.15.4",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
     "babel-plugin-react-compiler": "19.1.0-rc.2",
     "typescript": "5.8.3"
   },
-  "packageManager": "pnpm@10.12.4"
+  "packageManager": "pnpm@10.13.1"
 }
