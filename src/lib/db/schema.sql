@@ -16,7 +16,7 @@ CREATE TABLE "oauthtry_users" (
 
 ALTER TABLE "oauthtry_sessions" ADD CONSTRAINT "oauthtry_sessions_user_id_oauthtry_users_id_fk" 
     FOREIGN KEY ("user_id") REFERENCES "public"."oauthtry_users"("id") 
-    ON DELETE no action ON UPDATE no action;
+    ON DELETE CASCADE ON UPDATE NO ACTION;
 
 CREATE INDEX "session_user_id_idx" ON "oauthtry_sessions" USING btree ("user_id");
 CREATE INDEX "google_id_idx" ON "oauthtry_users" USING btree ("google_id");

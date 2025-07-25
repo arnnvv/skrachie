@@ -17,8 +17,7 @@ export const getCurrentSession = cache(
         user: null,
       };
     }
-    const result = await validateSessionToken(token);
-    return result;
+    return validateSessionToken(token);
   },
 );
 
@@ -26,23 +25,26 @@ export const signOutAction = async (): Promise<{
   message: string;
 }> => {
   const { session } = await getCurrentSession();
-  if (session === null)
+  if (session === null) {
     return {
       message: "Not authenticated",
     };
+  }
 
   if (!(await globalPOSTRateLimit())) {
     return {
       message: "Too many requests",
     };
   }
+
   try {
     await invalidateSession(session.id);
     await deleteSessionTokenCookie();
-    return redirect("/login");
   } catch (e) {
+    console.error(`Error during session invalidation: ${e}`);
     return {
-      message: `Error LoggingOut ${e}`,
+      message: "An unexpected error occurred during sign out.",
     };
   }
+  redirect("/login");
 };

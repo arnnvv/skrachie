@@ -1,7 +1,8 @@
 import { headers } from "next/headers";
-import { TokenBucket } from "./rate-limit";
+import { RateLimiter } from "./rate-limit";
 
-export const globalBucket = new TokenBucket<string>(100, 1);
+export const globalBucket = new RateLimiter<string>(100, 1);
+globalBucket.startCleanup();
 
 export async function globalGETRateLimit(): Promise<boolean> {
   const clientIP = (await headers()).get("X-Forwarded-For");
