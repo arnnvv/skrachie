@@ -1,132 +1,124 @@
+export class ParseError extends Error {
+  constructor(
+    public path: string[],
+    public expectedType: string,
+    public receivedValue: unknown,
+  ) {
+    const receivedType = receivedValue === null ? "null" : typeof receivedValue;
+    const message = `Validation failed at path "${path.join(
+      ".",
+    )}": Expected type "${expectedType}", but received type "${receivedType}" with value: ${JSON.stringify(
+      receivedValue,
+    )}`;
+    super(message);
+    this.name = "ParseError";
+  }
+}
+
+type GetOptions<T> =
+  | {
+      optional: true;
+      default?: undefined;
+    }
+  | {
+      optional?: false;
+      default: T;
+    };
+
 export class ObjectParser {
-  private value: unknown;
+  private data: unknown;
 
-  constructor(value: unknown) {
-    this.value = value;
+  constructor(data: unknown) {
+    if (typeof data !== "object" || data === null) {
+      throw new TypeError("ObjectParser must be initialized with an object.");
+    }
+    this.data = data;
   }
 
-  public has(...path: string[]): boolean {
-    if (path.length < 1) {
-      throw new TypeError("Invalid path");
-    }
-    let value = this.value;
-    for (let i = 0; i < path.length; i++) {
-      if (typeof value !== "object" || value === null) {
-        return false;
+  private get(path: string[]): unknown {
+    let value = this.data;
+    for (const key of path) {
+      if (
+        typeof value !== "object" ||
+        value === null ||
+        !Object.hasOwn(value, key)
+      ) {
+        return undefined;
       }
-      if (!(path[i] in value)) {
-        return false;
-      }
-      value = value[path[i] as keyof typeof value];
-    }
-    return true;
-  }
-
-  public get(...path: string[]): unknown {
-    if (path.length < 1) {
-      throw new TypeError("Invalid path");
-    }
-    let value = this.value;
-    for (let i = 0; i < path.length; i++) {
-      if (typeof value !== "object" || value === null) {
-        throw new Error(
-          `Value in path ${path.slice(0, i + 1).join(".")} is not an object`,
-        );
-      }
-      if (!(path[i] in value)) {
-        throw new Error(
-          `Path ${path.slice(0, i + 1).join(".")} does not exist`,
-        );
-      }
-      value = value[path[i] as keyof typeof value];
+      value = (value as Record<string, unknown>)[key];
     }
     return value;
   }
 
-  public isString(...path: string[]): boolean {
-    return typeof this.get(...path) === "string";
+  private getTyped<T>(
+    type: "string" | "number" | "boolean" | "object" | "array",
+    path: string[],
+    options?: GetOptions<T>,
+  ): T | undefined {
+    const value = this.get(path);
+
+    if (value === undefined || value === null) {
+      if (options?.default !== undefined) {
+        return options.default;
+      }
+      if (options?.optional) {
+        return undefined;
+      }
+      throw new ParseError(path, type, value);
+    }
+
+    const isCorrectType =
+      type === "array" ? Array.isArray(value) : typeof value === type;
+
+    if (!isCorrectType) {
+      throw new ParseError(path, type, value);
+    }
+
+    return value as T;
   }
 
   public getString(...path: string[]): string {
-    const value = this.get(...path);
-    if (typeof value !== "string") {
-      throw new Error(`Value in path ${path.join(".")} is not a string`);
-    }
-    return value;
+    return this.getTyped<string>("string", path) as string;
   }
 
-  public isNumber(...path: string[]): boolean {
-    return typeof this.get(...path) === "number";
+  public getOptionalString(...path: string[]): string | undefined {
+    return this.getTyped<string>("string", path, { optional: true });
   }
 
   public getNumber(...path: string[]): number {
-    const value = this.get(...path);
-    if (typeof value !== "number") {
-      throw new Error(`Value in path ${path.join(".")} is not a string`);
-    }
-    return value;
+    return this.getTyped<number>("number", path) as number;
   }
 
-  public isBoolean(...path: string[]): boolean {
-    return typeof this.get(...path) === "boolean";
+  public getOptionalNumber(...path: string[]): number | undefined {
+    return this.getTyped<number>("number", path, { optional: true });
   }
 
   public getBoolean(...path: string[]): boolean {
-    const value = this.get(...path);
-    if (typeof value !== "boolean") {
-      throw new Error(`Value in path ${path.join(".")} is not a boolean`);
-    }
-    return value;
+    return this.getTyped<boolean>("boolean", path) as boolean;
   }
 
-  public isBigInt(...path: string[]): boolean {
-    return typeof this.get(...path) === "bigint";
-  }
-
-  public getBigInt(...path: string[]): bigint {
-    const value = this.get(...path);
-    if (typeof value !== "bigint") {
-      throw new Error(`Value in path ${path.join(".")} is not a bigint`);
-    }
-    return value;
-  }
-
-  public isObject(...path: string[]): boolean {
-    const value = this.get(...path);
-    return typeof value === "object" && value !== null;
+  public getOptionalBoolean(...path: string[]): boolean | undefined {
+    return this.getTyped<boolean>("boolean", path, { optional: true });
   }
 
   public getObject(...path: string[]): object {
-    const value = this.get(...path);
-    if (typeof value !== "object" || value === null) {
-      throw new Error(`Value in path ${path.join(".")} is not a object`);
-    }
-    return value;
+    return this.getTyped<object>("object", path) as object;
   }
 
-  public isArray(...path: string[]): boolean {
-    return Array.isArray(this.get(...path));
+  public getOptionalObject(...path: string[]): object | undefined {
+    return this.getTyped<object>("object", path, { optional: true });
   }
 
   public getArray(...path: string[]): unknown[] {
-    const value = this.get(...path);
-    if (!Array.isArray(value)) {
-      throw new Error(`Value in path ${path.join(".")} is not a object`);
-    }
-    return value;
+    return this.getTyped<unknown[]>("array", path) as unknown[];
   }
 
-  public isNull(...path: string[]): boolean {
-    const value = this.get(...path);
-    return value === null;
+  public getOptionalArray(...path: string[]): unknown[] | undefined {
+    return this.getTyped<unknown[]>("array", path, { optional: true });
   }
 
-  public isUndefined(...path: string[]): boolean {
-    const value = this.get(...path);
-    return value === undefined;
-  }
-
-  public createParser(...path: string[]): ObjectParser {
-    return new ObjectParser(this.getObject(...path));
+  public createSubParser(...path: string[]): ObjectParser {
+    const subObject = this.getObject(...path);
+    return new ObjectParser(subObject);
   }
 }
