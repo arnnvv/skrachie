@@ -1,5 +1,6 @@
-import { googleOAuthConfig } from "./config";
+import { githubOAuthConfig, googleOAuthConfig } from "./config";
 import { encodeBase64urlNoPadding } from "./encoding";
+import { GitHub } from "./github";
 import { Google } from "./google";
 import { validateIdToken } from "./token";
 
@@ -35,3 +36,9 @@ export const google = new Google(
 );
 
 google.validateIdToken = validateGoogleIdToken;
+
+export const github = new GitHub(
+  githubOAuthConfig.clientId,
+  githubOAuthConfig.clientSecret,
+  githubOAuthConfig.redirectUrl,
+);

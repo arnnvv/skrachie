@@ -1,8 +1,7 @@
 import { headers } from "next/headers";
-import { RateLimiter } from "./rate-limit";
+import { InMemoryRateLimiter } from "./rate-limit";
 
-export const globalBucket = new RateLimiter<string>(100, 1);
-globalBucket.startCleanup();
+export const globalBucket = new InMemoryRateLimiter<string>(100, 1);
 
 export async function globalGETRateLimit(): Promise<boolean> {
   const clientIP = (await headers()).get("X-Forwarded-For");

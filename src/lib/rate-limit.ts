@@ -1,13 +1,16 @@
+import { BUCKET_EXPIRATION_MS, CLEANUP_INTERVAL_MS } from "./constants";
+
 interface Bucket {
   count: number;
   refilledAt: number;
   lastAccessed: number;
 }
 
-const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
-const BUCKET_EXPIRATION_MS = 24 * 60 * 60 * 1000;
+export interface IRateLimiter<TKey> {
+  consume(key: TKey, cost: number): boolean;
+}
 
-export class RateLimiter<TKey> {
+export class InMemoryRateLimiter<TKey> implements IRateLimiter<TKey> {
   public max: number;
   public refillIntervalSeconds: number;
   private storage = new Map<TKey, Bucket>();
@@ -16,6 +19,7 @@ export class RateLimiter<TKey> {
   constructor(max: number, refillIntervalSeconds: number) {
     this.max = max;
     this.refillIntervalSeconds = refillIntervalSeconds;
+    this.startCleanup();
   }
 
   private cleanup(): void {
@@ -27,7 +31,7 @@ export class RateLimiter<TKey> {
     }
   }
 
-  public startCleanup(): void {
+  private startCleanup(): void {
     if (this.cleanupInterval === null) {
       this.cleanupInterval = setInterval(
         () => this.cleanup(),

@@ -6,11 +6,18 @@ function getEnvVar(key: string): string {
   return value;
 }
 
-export const googleOAuthConfig = {
-  clientId: getEnvVar("GOOGLE_CLIENT_ID"),
-  clientSecret: getEnvVar("GOOGLE_CLIENT_SECRET"),
-  redirectUrl: getEnvVar("GOOGLE_REDIRECT_URL"),
-};
+function getOAuthConfig(provider: "google" | "github") {
+  const p = provider.toUpperCase();
+  return {
+    clientId: getEnvVar(`${p}_CLIENT_ID`),
+    clientSecret: getEnvVar(`${p}_CLIENT_SECRET`),
+    redirectUrl: getEnvVar(`${p}_REDIRECT_URL`),
+  };
+}
+
+export const googleOAuthConfig = getOAuthConfig("google");
+
+export const githubOAuthConfig = getOAuthConfig("github");
 
 export const dbConfig = {
   connectionString: getEnvVar("DATABASE_URL"),

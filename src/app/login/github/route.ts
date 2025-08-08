@@ -1,18 +1,12 @@
-import { cookies } from "next/headers";
+import { getCurrentSession } from "@/actions";
 import {
-  GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME,
-  GOOGLE_OAUTH_NONCE_COOKIE_NAME,
-  GOOGLE_OAUTH_STATE_COOKIE_NAME,
+  GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME,
+  GITHUB_OAUTH_STATE_COOKIE_NAME,
   OAUTH_COOKIE_MAX_AGE_SECONDS,
 } from "@/lib/constants";
-import {
-  generateCodeVerifier,
-  generateNonce,
-  generateState,
-  google,
-} from "@/lib/oauth";
+import { generateCodeVerifier, generateState, github } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/requests";
-import { getCurrentSession } from "@/actions";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {
@@ -28,26 +22,22 @@ export async function GET(request: Request): Promise<Response> {
 
   const state = generateState();
   const codeVerifier = generateCodeVerifier();
-  const nonce = generateNonce();
-
-  const url = await google.createAuthorizationURL(state, codeVerifier, nonce, [
-    "openid",
-    "profile",
-    "email",
+  const url = await github.createAuthorizationURLWithPKCE(state, codeVerifier, [
+    "user:email",
   ]);
+
+  const c = await cookies();
 
   const cookieOptions = {
     path: "/",
-    httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
     maxAge: OAUTH_COOKIE_MAX_AGE_SECONDS,
     sameSite: "lax" as const,
   };
 
-  const c = await cookies();
-  c.set(GOOGLE_OAUTH_STATE_COOKIE_NAME, state, cookieOptions);
-  c.set(GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME, codeVerifier, cookieOptions);
-  c.set(GOOGLE_OAUTH_NONCE_COOKIE_NAME, nonce, cookieOptions);
+  c.set(GITHUB_OAUTH_STATE_COOKIE_NAME, state, cookieOptions);
+  c.set(GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME, codeVerifier, cookieOptions);
 
   return Response.redirect(url);
 }
