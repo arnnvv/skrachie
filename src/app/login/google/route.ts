@@ -15,13 +15,15 @@ import { globalGETRateLimit } from "@/lib/requests";
 import { getCurrentSession } from "@/actions";
 
 export async function GET(request: Request): Promise<Response> {
+  if (!(await globalGETRateLimit())) {
+    return new Response("Too many requests", {
+      status: 429,
+    });
+  }
+
   const { session } = await getCurrentSession();
   if (session !== null) {
     return Response.redirect(new URL("/", request.url));
-  }
-
-  if (!(await globalGETRateLimit())) {
-    return new Response("Too many requests", { status: 429 });
   }
 
   const state = generateState();

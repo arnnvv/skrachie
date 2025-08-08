@@ -1,5 +1,5 @@
 import { db } from "./db";
-import type { User, Session } from "./db/types";
+import type { User, Session, SessionAndUserRow } from "./db/types";
 import { sha256 } from "./sha";
 import { encodeBase32LowerCaseNoPadding, encodeHexLowerCase } from "./encoding";
 import {
@@ -34,7 +34,7 @@ export async function createSession(
   };
 
   await db.query(
-    "INSERT INTO oauthtry_sessions (id, user_id, expires_at) VALUES ($1, $2, $3)",
+    "INSERT INTO scratchy_sessions (id, user_id, expires_at) VALUES ($1, $2, $3)",
     [session.id, session.user_id, session.expires_at],
   );
 
@@ -49,18 +49,19 @@ export async function validateSessionToken(
     await sha256(new TextEncoder().encode(token)),
   );
 
-  const sessionAndUserResult = await db.query(
+  const sessionAndUserResult = await db.query<SessionAndUserRow>(
     `
       SELECT
         s.user_id,
         s.expires_at,
         u.id as user_id_from_users_table,
+        u.github_id,
         u.google_id,
         u.email,
         u.name,
         u.picture
-      FROM oauthtry_sessions s
-      JOIN oauthtry_users u ON s.user_id = u.id
+      FROM scratchy_sessions s
+      JOIN scratchy_users u ON s.user_id = u.id
       WHERE s.id = $1 LIMIT 1
     `,
     [sessionId],
@@ -75,17 +76,26 @@ export async function validateSessionToken(
   const expiresAtMs = data.expires_at.getTime();
 
   if (now >= expiresAtMs) {
-    await db.query("DELETE FROM oauthtry_sessions WHERE id = $1", [sessionId]);
+    await db.query("DELETE FROM scratchy_sessions WHERE id = $1", [sessionId]);
     return { session: null, user: null };
   }
 
-  const user: User = {
+  if (data.google_id === null && data.github_id === null) {
+    console.error(
+      `FATAL: User with id ${data.user_id_from_users_table} has no provider ID. Invalidating session.`,
+    );
+    await invalidateSession(sessionId);
+    return { session: null, user: null };
+  }
+
+  const user = {
     id: data.user_id_from_users_table,
     google_id: data.google_id,
+    github_id: data.github_id,
     email: data.email,
     name: data.name,
     picture: data.picture,
-  };
+  } as User;
 
   const session: Session = {
     id: sessionId,
@@ -97,7 +107,7 @@ export async function validateSessionToken(
   if (now >= expiresAtMs - refreshThresholdMs) {
     const newExpiresAt = new Date(now + SESSION_MAX_AGE_SECONDS * 1000);
     await db.query(
-      "UPDATE oauthtry_sessions SET expires_at = $1 WHERE id = $2",
+      "UPDATE scratchy_sessions SET expires_at = $1 WHERE id = $2",
       [newExpiresAt, session.id],
     );
     session.expires_at = newExpiresAt;
@@ -107,5 +117,5 @@ export async function validateSessionToken(
 }
 
 export async function invalidateSession(sessionId: string): Promise<void> {
-  await db.query("DELETE FROM oauthtry_sessions WHERE id = $1", [sessionId]);
+  await db.query("DELETE FROM scratchy_sessions WHERE id = $1", [sessionId]);
 }
