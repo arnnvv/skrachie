@@ -1,7 +1,10 @@
 import { cookies } from "next/headers";
 import { getCurrentSession } from "@/actions";
 import { createSession, generateSessionToken } from "@/lib/auth";
-import { GITHUB_OAUTH_STATE_COOKIE_NAME } from "@/lib/constants";
+import {
+  GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME,
+  GITHUB_OAUTH_STATE_COOKIE_NAME,
+} from "@/lib/constants";
 import type { GitHubEmail } from "@/lib/github";
 import { github } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/requests";
@@ -26,16 +29,26 @@ export async function GET(request: Request): Promise<Response> {
 
   const c = await cookies();
   const storedState = c.get(GITHUB_OAUTH_STATE_COOKIE_NAME)?.value ?? null;
-  c.delete(GITHUB_OAUTH_STATE_COOKIE_NAME);
+  const codeVerifier =
+    c.get(GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME)?.value ?? null;
 
-  if (!code || !state || !storedState || state !== storedState) {
+  c.delete(GITHUB_OAUTH_STATE_COOKIE_NAME);
+  c.delete(GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME);
+
+  if (
+    !code ||
+    !state ||
+    !storedState ||
+    !codeVerifier ||
+    state !== storedState
+  ) {
     return new Response("Invalid OAuth state. Please try again.", {
       status: 400,
     });
   }
 
   try {
-    const tokens = await github.validateAuthorizationCode(code);
+    const tokens = await github.validateAuthorizationCode(code, codeVerifier);
     const accessToken = tokens.accessToken();
 
     const githubUser = await github.getUser(accessToken);

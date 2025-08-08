@@ -3,7 +3,7 @@ import {
   GITHUB_USER_EMAILS_ENDPOINT,
   GITHUB_USER_ENDPOINT,
 } from "./constants";
-import { OAuth2Client } from "./oauth-client";
+import { CodeChallengeMethod, OAuth2Client } from "./oauth-client";
 import type { OAuth2Tokens } from "./oauth-token";
 
 export class GitHub {
@@ -21,11 +21,28 @@ export class GitHub {
     );
   }
 
-  public async validateAuthorizationCode(code: string): Promise<OAuth2Tokens> {
+  public async createAuthorizationURLWithPKCE(
+    state: string,
+    codeVerifier: string,
+    scopes: string[],
+  ): Promise<URL> {
+    return this.client.createAuthorizationURLWithPKCE(
+      "https://github.com/login/oauth/authorize",
+      state,
+      CodeChallengeMethod.S256,
+      codeVerifier,
+      scopes,
+    );
+  }
+
+  public async validateAuthorizationCode(
+    code: string,
+    codeVerifier: string,
+  ): Promise<OAuth2Tokens> {
     return this.client.validateAuthorizationCode(
       GITHUB_TOKEN_ENDPOINT,
       code,
-      null,
+      codeVerifier,
     );
   }
 

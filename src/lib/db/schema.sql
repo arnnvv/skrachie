@@ -12,7 +12,10 @@ CREATE TABLE "scratchy_users" (
     "name" text NOT NULL,
     "picture" text NOT NULL,
     CONSTRAINT "scratchy_users_google_id_unique" UNIQUE("google_id"),
-    CONSTRAINT "scratchy_users_email_unique" UNIQUE("email")
+    CONSTRAINT "scratchy_users_github_id_unique" UNIQUE("github_id"),
+    CONSTRAINT "scratchy_users_email_unique" UNIQUE("email"),
+    CONSTRAINT "check_at_least_one_provider_id"
+      CHECK (google_id IS NOT NULL OR github_id IS NOT NULL)
 );
 
 ALTER TABLE "scratchy_sessions" ADD CONSTRAINT "scratchy_sessions_user_id_scratchy_users_id_fk"
@@ -21,4 +24,5 @@ ALTER TABLE "scratchy_sessions" ADD CONSTRAINT "scratchy_sessions_user_id_scratc
 
 CREATE INDEX "session_user_id_idx" ON "scratchy_sessions" USING btree ("user_id");
 CREATE INDEX "google_id_idx" ON "scratchy_users" USING btree ("google_id");
+CREATE INDEX "github_id_idx" ON "scratchy_users" ("github_id");
 CREATE INDEX "email_idx" ON "scratchy_users" USING btree ("email");

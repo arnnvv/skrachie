@@ -1,9 +1,10 @@
 import { getCurrentSession } from "@/actions";
 import {
+  GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME,
   GITHUB_OAUTH_STATE_COOKIE_NAME,
   OAUTH_COOKIE_MAX_AGE_SECONDS,
 } from "@/lib/constants";
-import { generateState, github } from "@/lib/oauth";
+import { generateCodeVerifier, generateState, github } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/requests";
 import { cookies } from "next/headers";
 
@@ -20,15 +21,23 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const state = generateState();
-  const url = github.createAuthorizationURL(state, ["user:email"]);
+  const codeVerifier = generateCodeVerifier();
+  const url = await github.createAuthorizationURLWithPKCE(state, codeVerifier, [
+    "user:email",
+  ]);
 
-  (await cookies()).set(GITHUB_OAUTH_STATE_COOKIE_NAME, state, {
+  const c = await cookies();
+
+  const cookieOptions = {
     path: "/",
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
     maxAge: OAUTH_COOKIE_MAX_AGE_SECONDS,
-    sameSite: "lax",
-  });
+    sameSite: "lax" as const,
+  };
+
+  c.set(GITHUB_OAUTH_STATE_COOKIE_NAME, state, cookieOptions);
+  c.set(GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME, codeVerifier, cookieOptions);
 
   return Response.redirect(url);
 }
