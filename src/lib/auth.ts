@@ -1,7 +1,7 @@
 import { db } from "./db";
 import type { User, Session, SessionAndUserRow } from "./db/types";
 import { sha256 } from "./sha";
-import { encodeBase32LowerCaseNoPadding, encodeHexLowerCase } from "./encoding";
+import { encodeBase64urlNoPadding, encodeHexLowerCase } from "./encoding";
 import {
   SESSION_MAX_AGE_SECONDS,
   SESSION_REFRESH_THRESHOLD_SECONDS,
@@ -14,7 +14,7 @@ export type SessionValidationResult =
 export function generateSessionToken(): string {
   const bytes = new Uint8Array(20);
   crypto.getRandomValues(bytes);
-  return encodeBase32LowerCaseNoPadding(bytes);
+  return encodeBase64urlNoPadding(bytes);
 }
 
 export async function createSession(

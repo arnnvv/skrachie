@@ -1,6 +1,5 @@
 import {
   decodeBase64urlIgnorePadding,
-  encodeBase32LowerCaseNoPadding,
   encodeBase64,
   encodeBase64urlNoPadding,
   encodeHexLowerCase,
@@ -86,26 +85,6 @@ describe("Encoding Utilities", () => {
       const decodedString = new TextDecoder().decode(decodedBytes);
 
       expect(decodedString).toBe("Hello, world!");
-    });
-  });
-
-  describe("encodeBase32LowerCaseNoPadding", () => {
-    it("should correctly encode a known test vector", () => {
-      // Test vector from RFC 4648 for "foobar"
-      const input = new TextEncoder().encode("foobar");
-      const expected = "mzxw6ytboi";
-      expect(encodeBase32LowerCaseNoPadding(input)).toBe(expected);
-    });
-
-    it("should correctly encode a longer string", () => {
-      const input = new TextEncoder().encode("Hello, world!");
-      const expected = "jbswy3dpfqqho33snrscc";
-      expect(encodeBase32LowerCaseNoPadding(input)).toBe(expected);
-    });
-
-    it("should return an empty string for an empty input", () => {
-      const input = new Uint8Array([]);
-      expect(encodeBase32LowerCaseNoPadding(input)).toBe("");
     });
   });
 });
