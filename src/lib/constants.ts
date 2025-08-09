@@ -19,6 +19,8 @@ export const GITHUB_USER_EMAILS_ENDPOINT = "https://api.github.com/user/emails";
 export const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 export const BUCKET_EXPIRATION_MS = 24 * 60 * 60 * 1000;
 
+export const BASE_32_LOWER_CASE_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
+
 export const PROVIDER = {
   GOOGLE: "google",
   GITHUB: "github",
