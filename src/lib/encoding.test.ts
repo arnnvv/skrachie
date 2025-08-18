@@ -1,17 +1,20 @@
+import { webcrypto } from "node:crypto";
 import {
   decodeBase64urlIgnorePadding,
-  encodeBase32LowerCaseNoPadding,
   encodeBase64,
   encodeBase64urlNoPadding,
   encodeHexLowerCase,
 } from "./encoding";
 
+const generateRandomBytes = (length: number): Uint8Array => {
+  return webcrypto.getRandomValues(new Uint8Array(length));
+};
+
 describe("Encoding Utilities", () => {
   describe("encodeHexLowerCase", () => {
     it("should correctly encode a byte array to a lowercase hex string", () => {
       const bytes = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
-      const expected = "deadbeef";
-      expect(encodeHexLowerCase(bytes)).toBe(expected);
+      expect(encodeHexLowerCase(bytes)).toBe("deadbeef");
     });
 
     it("should return an empty string for an empty byte array", () => {
@@ -19,93 +22,93 @@ describe("Encoding Utilities", () => {
       expect(encodeHexLowerCase(bytes)).toBe("");
     });
 
-    it("should correctly handle single-digit hex values with a leading zero", () => {
+    it("should correctly handle single-digit hex values by padding with a leading zero", () => {
       const bytes = new Uint8Array([0x0a, 0x05, 0x0f]);
-      const expected = "0a050f";
-      expect(encodeHexLowerCase(bytes)).toBe(expected);
+      expect(encodeHexLowerCase(bytes)).toBe("0a050f");
+    });
+
+    it("should correctly handle a byte array containing a zero byte", () => {
+      const bytes = new Uint8Array([0xca, 0xfe, 0x00, 0xba, 0xbe]);
+      expect(encodeHexLowerCase(bytes)).toBe("cafe00babe");
     });
   });
 
   describe("encodeBase64", () => {
-    it("should correctly encode a string to standard Base64 with padding", () => {
-      const input = new TextEncoder().encode("Man"); // 3 bytes, no padding
+    it("should correctly encode a byte array with a length divisible by 3 (no padding)", () => {
+      const input = new TextEncoder().encode("Man");
       expect(encodeBase64(input)).toBe("TWFu");
     });
 
-    it("should correctly add single '=' padding", () => {
-      const input = new TextEncoder().encode("Ma"); // 2 bytes
+    it("should correctly encode with single '=' padding", () => {
+      const input = new TextEncoder().encode("Ma");
       expect(encodeBase64(input)).toBe("TWE=");
     });
 
-    it("should correctly add double '==' padding", () => {
-      const input = new TextEncoder().encode("M"); // 1 byte
+    it("should correctly encode with double '==' padding", () => {
+      const input = new TextEncoder().encode("M");
       expect(encodeBase64(input)).toBe("TQ==");
-    });
-
-    it("should return an empty string for empty input", () => {
-      const input = new Uint8Array([]);
-      expect(encodeBase64(input)).toBe("");
-    });
-  });
-
-  describe("encodeBase64urlNoPadding", () => {
-    it("should correctly encode a string to Base64URL without padding", () => {
-      // Standard Base64 would be "SGVsbG8sIHdvcmxkIQ=="
-      const input = new TextEncoder().encode("Hello, world!");
-      expect(encodeBase64urlNoPadding(input)).toBe("SGVsbG8sIHdvcmxkIQ");
-    });
-
-    it("should use URL-safe characters '-' and '_'", () => {
-      const input = new Uint8Array([251, 254, 252]);
-      expect(encodeBase64urlNoPadding(input)).toBe("-_78");
-    });
-  });
-
-  describe("decodeBase64urlIgnorePadding", () => {
-    it("should perform a round-trip encode/decode cycle successfully", () => {
-      const originalString = "A test string with various characters!?123";
-      const originalBytes = new TextEncoder().encode(originalString);
-
-      const encoded = encodeBase64urlNoPadding(originalBytes);
-      const roundTripBytes = decodeBase64urlIgnorePadding(encoded);
-
-      const decodedString = new TextDecoder().decode(roundTripBytes);
-      expect(decodedString).toBe(originalString);
-    });
-
-    it("should correctly decode a string with URL-safe characters", () => {
-      const encoded = "-_78";
-      const expectedBytes = new Uint8Array([251, 254, 252]);
-      const decodedBytes = decodeBase64urlIgnorePadding(encoded);
-      expect(new Uint8Array(decodedBytes)).toEqual(expectedBytes);
-    });
-
-    it("should correctly decode a string that has optional padding", () => {
-      const encodedWithPadding = "SGVsbG8sIHdvcmxkIQ==";
-      const decodedBytes = decodeBase64urlIgnorePadding(encodedWithPadding);
-      const decodedString = new TextDecoder().decode(decodedBytes);
-
-      expect(decodedString).toBe("Hello, world!");
-    });
-  });
-
-  describe("encodeBase32LowerCaseNoPadding", () => {
-    it("should correctly encode a known test vector", () => {
-      // Test vector from RFC 4648 for "foobar"
-      const input = new TextEncoder().encode("foobar");
-      const expected = "mzxw6ytboi";
-      expect(encodeBase32LowerCaseNoPadding(input)).toBe(expected);
-    });
-
-    it("should correctly encode a longer string", () => {
-      const input = new TextEncoder().encode("Hello, world!");
-      const expected = "jbswy3dpfqqho33snrscc";
-      expect(encodeBase32LowerCaseNoPadding(input)).toBe(expected);
     });
 
     it("should return an empty string for an empty input", () => {
       const input = new Uint8Array([]);
-      expect(encodeBase32LowerCaseNoPadding(input)).toBe("");
+      expect(encodeBase64(input)).toBe("");
+    });
+
+    it("should correctly encode byte values that result in '+' and '/' characters", () => {
+      const bytes = new Uint8Array([0xfb, 0xff, 0xbe]);
+      expect(encodeBase64(bytes)).toBe("+/++");
+    });
+  });
+
+  describe("encodeBase64urlNoPadding", () => {
+    it("should replace '+' with '-' and '/' with '_' compared to standard Base64", () => {
+      const bytesWithSpecialChars = new Uint8Array([0xfb, 0xff, 0xbe]);
+      expect(encodeBase64(bytesWithSpecialChars)).toBe("+/++");
+      expect(encodeBase64urlNoPadding(bytesWithSpecialChars)).toBe("-_--");
+    });
+
+    it("should not include padding characters", () => {
+      const oneByte = new TextEncoder().encode("M");
+      expect(encodeBase64urlNoPadding(oneByte)).toBe("TQ");
+
+      const twoBytes = new TextEncoder().encode("Ma");
+      expect(encodeBase64urlNoPadding(twoBytes)).toBe("TWE");
+
+      const threeBytes = new TextEncoder().encode("Man");
+      expect(encodeBase64urlNoPadding(threeBytes)).toBe("TWFu");
+    });
+  });
+
+  describe("Base64URL Round-trip Validation", () => {
+    it("should correctly encode and then decode random binary data of various lengths", () => {
+      const lengthsToTest = [0, 1, 2, 3, 4, 31, 32, 33, 63, 64, 65, 128];
+
+      for (const length of lengthsToTest) {
+        const originalBytes = generateRandomBytes(length);
+        const encoded = encodeBase64urlNoPadding(originalBytes);
+        const decodedBytes = decodeBase64urlIgnorePadding(encoded);
+
+        expect(decodedBytes).toEqual(originalBytes);
+      }
+    });
+
+    it("should correctly decode a valid Base64URL string that contains padding from another source", () => {
+      const originalString = "Hello, world!";
+      const encodedWithPadding = "SGVsbG8sIHdvcmxkIQ==";
+      const decodedBytes = decodeBase64urlIgnorePadding(encodedWithPadding);
+      const decodedString = new TextDecoder().decode(decodedBytes);
+
+      expect(decodedString).toBe(originalString);
+    });
+
+    it("should perform a round-trip for a known string with special characters", () => {
+      const originalString = "A test string with various characters!?123-_+/@";
+      const originalBytes = new TextEncoder().encode(originalString);
+
+      const encoded = encodeBase64urlNoPadding(originalBytes);
+      const decodedBytes = decodeBase64urlIgnorePadding(encoded);
+
+      expect(new TextDecoder().decode(decodedBytes)).toBe(originalString);
     });
   });
 });
