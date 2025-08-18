@@ -11,5 +11,5 @@ export function encodeBase64(bytes: Uint8Array): string {
 }
 
 export function decodeBase64urlIgnorePadding(encoded: string): Uint8Array {
-  return Buffer.from(encoded, "base64url");
+  return new Uint8Array(Buffer.from(encoded, "base64url"));
 }
