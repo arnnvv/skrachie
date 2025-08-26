@@ -1,4 +1,5 @@
 import {
+  GITHUB_AUTHORIZE_ENDPOINT,
   GITHUB_TOKEN_ENDPOINT,
   GITHUB_USER_EMAILS_ENDPOINT,
   GITHUB_USER_ENDPOINT,
@@ -15,7 +16,7 @@ export class GitHub {
 
   public createAuthorizationURL(state: string, scopes: string[]): URL {
     return this.client.createAuthorizationURL(
-      "https://github.com/login/oauth/authorize",
+      GITHUB_AUTHORIZE_ENDPOINT,
       state,
       scopes,
     );
@@ -27,7 +28,7 @@ export class GitHub {
     scopes: string[],
   ): Promise<URL> {
     return this.client.createAuthorizationURLWithPKCE(
-      "https://github.com/login/oauth/authorize",
+      GITHUB_AUTHORIZE_ENDPOINT,
       state,
       CodeChallengeMethod.S256,
       codeVerifier,

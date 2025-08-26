@@ -1,4 +1,4 @@
-import { githubOAuthConfig, googleOAuthConfig } from "./config";
+import { appConfig } from "./config";
 import { encodeBase64urlNoPadding } from "./encoding";
 import { GitHub } from "./github";
 import { Google } from "./google";
@@ -26,19 +26,19 @@ async function validateGoogleIdToken(
   idToken: string,
   nonce: string,
 ): Promise<object> {
-  return validateIdToken(idToken, googleOAuthConfig.clientId, nonce);
+  return validateIdToken(idToken, appConfig.google.clientId, nonce);
 }
 
 export const google = new Google(
-  googleOAuthConfig.clientId,
-  googleOAuthConfig.clientSecret,
-  googleOAuthConfig.redirectUrl,
+  appConfig.google.clientId,
+  appConfig.google.clientSecret,
+  appConfig.google.redirectUrl,
 );
 
 google.validateIdToken = validateGoogleIdToken;
 
 export const github = new GitHub(
-  githubOAuthConfig.clientId,
-  githubOAuthConfig.clientSecret,
-  githubOAuthConfig.redirectUrl,
+  appConfig.github.clientId,
+  appConfig.github.clientSecret,
+  appConfig.github.redirectUrl,
 );

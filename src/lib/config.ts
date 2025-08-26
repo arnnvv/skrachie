@@ -6,27 +6,23 @@ function getEnvVar(key: string): string {
   return value;
 }
 
-function getOAuthConfig(provider: "google" | "github") {
-  const p = provider.toUpperCase();
-  return {
-    clientId: getEnvVar(`${p}_CLIENT_ID`),
-    clientSecret: getEnvVar(`${p}_CLIENT_SECRET`),
-    redirectUrl: getEnvVar(`${p}_REDIRECT_URL`),
-  };
-}
-
-export const googleOAuthConfig = getOAuthConfig("google");
-
-export const githubOAuthConfig = getOAuthConfig("github");
-
-export const dbConfig = {
-  connectionString: getEnvVar("DATABASE_URL"),
-  pool: {
-    max: parseInt(process.env.DB_POOL_MAX || "10", 10),
-    idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS || "10000", 10),
-    connectionTimeoutMillis: parseInt(
-      process.env.DB_CONNECTION_TIMEOUT_MS || "0",
-      10,
-    ),
+export const appConfig = {
+  google: {
+    clientId: getEnvVar("GOOGLE_CLIENT_ID"),
+    clientSecret: getEnvVar("GOOGLE_CLIENT_SECRET"),
+    redirectUrl: getEnvVar("GOOGLE_REDIRECT_URL"),
+  },
+  github: {
+    clientId: getEnvVar("GITHUB_CLIENT_ID"),
+    clientSecret: getEnvVar("GITHUB_CLIENT_SECRET"),
+    redirectUrl: getEnvVar("GITHUB_REDIRECT_URL"),
+  },
+  database: {
+    connectionString: getEnvVar("DATABASE_URL"),
+    pool: {
+      max: Number(getEnvVar("DB_POOL_MAX")),
+      idleTimeoutMillis: Number(getEnvVar("DB_IDLE_TIMEOUT_MS")),
+      connectionTimeoutMillis: Number(getEnvVar("DB_CONNECTION_TIMEOUT_MS")),
+    },
   },
 };
