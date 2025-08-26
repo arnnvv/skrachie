@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getCurrentSession } from "@/actions";
 import { createSession, generateSessionToken } from "@/lib/auth";
+import { appConfig } from "@/lib/config";
 import {
   GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME,
   GITHUB_OAUTH_STATE_COOKIE_NAME,
@@ -32,8 +33,14 @@ export async function GET(request: Request): Promise<Response> {
   const codeVerifier =
     c.get(GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME)?.value ?? null;
 
-  c.delete(GITHUB_OAUTH_STATE_COOKIE_NAME);
-  c.delete(GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME);
+  c.delete({
+    name: GITHUB_OAUTH_STATE_COOKIE_NAME,
+    ...appConfig.oauthCookieOptions,
+  });
+  c.delete({
+    name: GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME,
+    ...appConfig.oauthCookieOptions,
+  });
 
   if (
     !code ||

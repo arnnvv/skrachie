@@ -1,3 +1,5 @@
+import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
+
 function getEnvVar(key: string): string {
   const value = process.env[key];
   if (!value) {
@@ -25,4 +27,10 @@ export const appConfig = {
       connectionTimeoutMillis: Number(getEnvVar("DB_CONNECTION_TIMEOUT_MS")),
     },
   },
+  oauthCookieOptions: {
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: "lax",
+  } as const satisfies Partial<ResponseCookie>,
 };

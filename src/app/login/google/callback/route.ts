@@ -1,4 +1,7 @@
 import { cookies } from "next/headers";
+import { getCurrentSession } from "@/actions";
+import { createSession, generateSessionToken } from "@/lib/auth";
+import { appConfig } from "@/lib/config";
 import {
   GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME,
   GOOGLE_OAUTH_NONCE_COOKIE_NAME,
@@ -7,10 +10,8 @@ import {
 import { google } from "@/lib/oauth";
 import { ObjectParser } from "@/lib/parser";
 import { globalGETRateLimit } from "@/lib/requests";
-import { upsertUserFromGoogleProfile } from "@/lib/user";
-import { getCurrentSession } from "@/actions";
-import { createSession, generateSessionToken } from "@/lib/auth";
 import { setSessionTokenCookie } from "@/lib/session";
+import { upsertUserFromGoogleProfile } from "@/lib/user";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {
@@ -32,9 +33,18 @@ export async function GET(request: Request): Promise<Response> {
     c.get(GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME)?.value ?? null;
   const nonce = c.get(GOOGLE_OAUTH_NONCE_COOKIE_NAME)?.value ?? null;
 
-  c.delete(GOOGLE_OAUTH_STATE_COOKIE_NAME);
-  c.delete(GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME);
-  c.delete(GOOGLE_OAUTH_NONCE_COOKIE_NAME);
+  c.delete({
+    name: GOOGLE_OAUTH_STATE_COOKIE_NAME,
+    ...appConfig.oauthCookieOptions,
+  });
+  c.delete({
+    name: GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME,
+    ...appConfig.oauthCookieOptions,
+  });
+  c.delete({
+    name: GOOGLE_OAUTH_NONCE_COOKIE_NAME,
+    ...appConfig.oauthCookieOptions,
+  });
 
   if (
     !code ||

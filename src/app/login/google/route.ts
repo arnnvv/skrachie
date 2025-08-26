@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { getCurrentSession } from "@/actions";
+import { appConfig } from "@/lib/config";
 import {
   GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME,
   GOOGLE_OAUTH_NONCE_COOKIE_NAME,
@@ -12,7 +14,6 @@ import {
   google,
 } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/requests";
-import { getCurrentSession } from "@/actions";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {
@@ -37,11 +38,8 @@ export async function GET(request: Request): Promise<Response> {
   ]);
 
   const cookieOptions = {
-    path: "/",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    ...appConfig.oauthCookieOptions,
     maxAge: OAUTH_COOKIE_MAX_AGE_SECONDS,
-    sameSite: "lax" as const,
   };
 
   const c = await cookies();
