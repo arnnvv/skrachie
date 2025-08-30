@@ -1,78 +1,68 @@
-import { BUCKET_EXPIRATION_MS, CLEANUP_INTERVAL_MS } from "./constants";
+import { appConfig } from "./config";
+import { redis } from "./redis";
 
-interface Bucket {
-  count: number;
-  refilledAt: number;
-  lastAccessed: number;
+const COUNTER_SCRIPT = `
+  local current_key = KEYS[1]
+  local previous_key = KEYS[2]
+  local limit = tonumber(ARGV[1])
+  local window_millis = tonumber(ARGV[2])
+  local now_millis = tonumber(ARGV[3])
+
+  local previous_count = tonumber(redis.call('GET', previous_key)) or 0
+
+  local current_count = redis.call('INCR', current_key)
+
+  if current_count == 1 then
+    redis.call('PEXPIRE', current_key, window_millis * 2)
+  end
+
+  local time_in_window = now_millis % window_millis
+  local weight = (window_millis - time_in_window) / window_millis
+  local weighted_previous_count = math.floor(previous_count * weight)
+
+  local estimated_count = (current_count - 1) + weighted_previous_count
+
+  if estimated_count < limit then
+    return 1
+  else
+    redis.call('DECR', current_key)
+    return 0
+  end
+`;
+
+async function sWindowCounter(
+  key: string,
+  limit: number,
+  windowInSeconds: number,
+): Promise<boolean> {
+  const now = Date.now();
+  const windowMillis = windowInSeconds * 1000;
+  const currentWindow = Math.floor(now / windowMillis);
+
+  const currentKey = `${key}:${currentWindow}`;
+  const previousKey = `${key}:${currentWindow - 1}`;
+
+  const result = await redis.eval(
+    COUNTER_SCRIPT,
+    [currentKey, previousKey],
+    [limit, windowMillis, now],
+  );
+
+  return result === 1;
 }
 
-export interface IRateLimiter<TKey> {
-  consume(key: TKey, cost: number): boolean;
+export function limitGetRequests(ip: string) {
+  return sWindowCounter(
+    `ratelimit_get:${ip}`,
+    appConfig.rateLimits.get.limit,
+    appConfig.rateLimits.get.window,
+  );
 }
 
-export class InMemoryRateLimiter<TKey> implements IRateLimiter<TKey> {
-  public max: number;
-  public refillIntervalSeconds: number;
-  private storage = new Map<TKey, Bucket>();
-  private cleanupInterval: NodeJS.Timeout | null = null;
-
-  constructor(max: number, refillIntervalSeconds: number) {
-    this.max = max;
-    this.refillIntervalSeconds = refillIntervalSeconds;
-    this.startCleanup();
-  }
-
-  private cleanup(): void {
-    const now = Date.now();
-    for (const [key, bucket] of this.storage.entries()) {
-      if (now - bucket.lastAccessed > BUCKET_EXPIRATION_MS) {
-        this.storage.delete(key);
-      }
-    }
-  }
-
-  private startCleanup(): void {
-    if (this.cleanupInterval === null) {
-      this.cleanupInterval = setInterval(
-        () => this.cleanup(),
-        CLEANUP_INTERVAL_MS,
-      );
-    }
-  }
-
-  public stopCleanup(): void {
-    if (this.cleanupInterval !== null) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
-  }
-
-  public consume(key: TKey, cost: number): boolean {
-    const now = Date.now();
-    const bucket = this.storage.get(key) ?? {
-      count: this.max,
-      refilledAt: now,
-      lastAccessed: now,
-    };
-
-    const refillAmount = Math.floor(
-      (now - bucket.refilledAt) / (this.refillIntervalSeconds * 1000),
-    );
-
-    if (refillAmount > 0) {
-      bucket.count = Math.min(bucket.count + refillAmount, this.max);
-      bucket.refilledAt = now;
-    }
-
-    bucket.lastAccessed = now;
-
-    if (bucket.count < cost) {
-      this.storage.set(key, bucket);
-      return false;
-    }
-
-    bucket.count -= cost;
-    this.storage.set(key, bucket);
-    return true;
-  }
+export function limitPostRequests(ip: string) {
+  return sWindowCounter(
+    `ratelimit_post:${ip}`,
+    appConfig.rateLimits.post.limit,
+    appConfig.rateLimits.post.window,
+  );
 }
