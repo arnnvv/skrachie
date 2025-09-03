@@ -1,5 +1,5 @@
-import { db } from "./db";
 import { PROVIDER } from "./constants";
+import { db } from "./db";
 import type { User } from "./db/types";
 
 type Provider = (typeof PROVIDER)[keyof typeof PROVIDER];

@@ -1,18 +1,18 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import type { JSX } from "react";
 import { getCurrentSession } from "@/actions";
 import { LogoutButton } from "@/components/LogoutButton";
 import { globalGETRateLimit } from "@/lib/requests";
-import type { JSX } from "react";
 
-export default async function ProfileContent(): Promise<JSX.Element> {
+export default async function ProfileContent(): Promise<JSX.Element | string> {
+  if (!(await globalGETRateLimit())) {
+    return "Too many requests";
+  }
+
   const { user, session } = await getCurrentSession();
 
   if (session === null) return redirect("/login");
-
-  if (!(await globalGETRateLimit())) {
-    return <div>Too many requests</div>;
-  }
 
   return (
     <>
