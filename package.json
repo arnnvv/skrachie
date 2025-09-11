@@ -1,33 +1,40 @@
 {
   "name": "scratchy",
   "version": "1.0.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "d": "next dev --turbopack",
     "b": "next build",
     "p": "next start",
     "f": "biome format --write",
-    "l": "biome check --write",
+    "l": "biome check",
     "test": "vitest",
     "cl": "rm -rf .next"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.0.1",
     "@upstash/redis": "1.35.3",
-    "next": "15.5.2",
+    "next": "15.5.3",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.0",
-    "@types/node": "24.3.0",
+    "@biomejs/biome": "2.2.4",
+    "@types/node": "24.3.1",
     "@types/react": "19.1.12",
     "@types/react-dom": "19.1.9",
     "@vitejs/plugin-react": "5.0.1",
-    "babel-plugin-react-compiler": "19.1.0-rc.2",
+    "babel-plugin-react-compiler": "19.1.0-rc.3",
     "typescript": "5.9.2",
     "vite-tsconfig-paths": "5.1.4",
     "vitest": "3.2.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild"
+    ]
   },
   "packageManager": "pnpm@10.15.0"
 }
